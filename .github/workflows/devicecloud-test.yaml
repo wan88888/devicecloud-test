@@ -22,8 +22,74 @@ jobs:
           node-version: '22'
 
       - name: Run Device Cloud Test
+        id: devicecloud
         uses: devicecloud-dev/device-cloud-for-maestro@v2
         with:
           api-key: ${{ secrets.DCD_API_KEY }}
           app-binary-id: 9424cc28-de18-4aed-86d9-0f3459f933ad
           flows: tests/
+          android-device: pixel-6
+          json-file: true
+
+      - name: Save Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '*_dcd.json'
+
+      - name: Notify Feishu
+        if: always()
+        env:
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+          STATUS: ${{ steps.devicecloud.outputs.DEVICE_CLOUD_UPLOAD_STATUS }}
+          CONSOLE_URL: ${{ steps.devicecloud.outputs.DEVICE_CLOUD_CONSOLE_URL }}
+        run: |
+          # 根据状态设置颜色
+          if [ "$STATUS" = "PASSED" ]; then
+            COLOR="green"
+          else
+            COLOR="red"
+          fi
+
+          # 获取构建时间
+          BUILD_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
+
+          # 发送飞书通知
+          curl -X POST "$FEISHU_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "msg_type": "interactive",
+              "card": {
+                "header": {
+                  "title": {
+                    "tag": "plain_text",
+                    "content": "📊 Device Cloud 测试报告"
+                  },
+                  "template": "'"$COLOR"'"
+                },
+                "elements": [
+                  {
+                    "tag": "div",
+                    "text": {
+                      "tag": "plain_text",
+                      "content": "⏰ 构建时间: '"$BUILD_TIME"'"
+                    }
+                  },
+                  {
+                    "tag": "action",
+                    "actions": [
+                      {
+                        "tag": "button",
+                        "text": {
+                          "tag": "plain_text",
+                          "content": "🔗 查看详细报告"
+                        },
+                        "type": "primary",
+                        "url": "'"$CONSOLE_URL"'"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }'
