@@ -1,0 +1,23 @@
+name: Device Cloud Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  device-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Device Cloud Test
+        uses: devicecloud-dev/device-cloud-for-maestro@v2
+        with:
+          api-key: ${{ secrets.DCD_API_KEY }}
+          app-binary-id: 9424cc28-de18-4aed-86d9-0f3459f933ad
