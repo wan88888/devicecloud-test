@@ -16,8 +16,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Run Device Cloud Test
         uses: devicecloud-dev/device-cloud-for-maestro@v2
         with:
           api-key: ${{ secrets.DCD_API_KEY }}
           app-binary-id: 9424cc28-de18-4aed-86d9-0f3459f933ad
+          flows: tests/
